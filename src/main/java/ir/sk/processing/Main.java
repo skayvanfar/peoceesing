@@ -59,13 +59,6 @@ public class Main {
             e.getCause().printStackTrace();
         } catch (DateTimeParseException e) {
             IO.write(printStream, "Invalid date format");
-        } finally {
-            /*try {
-                if (reader != null)
-                    reader.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }*/
         }
     }
 
@@ -82,8 +75,7 @@ public class Main {
         for (String fileName : fileNames) {
             futureList.add(executorService.submit(() -> {
                 Reader reader = IO.getReader(fileName);
-                List<Cookie> cookies = csvParser.read(reader, SKIP_LINES);
-                return cookies;
+                return csvParser.read(reader, SKIP_LINES);
             }));
         }
         List<Cookie> allCookies = new ArrayList<>();
@@ -109,9 +101,7 @@ public class Main {
         final Map<String, List<String>> params = new HashMap<>();
 
         List<String> options = null;
-        for (int i = 0; i < args.length; i++) {
-            final String a = args[i];
-
+        for (final String a : args) {
             if (a.charAt(0) == '-') {
                 if (a.length() < 2) {
                     throw new IllegalArgumentException("Not a valid argument: " + a);
