@@ -17,12 +17,14 @@ import java.net.URISyntaxException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
 
-    private final static String FILE_FLAG = "-f";
-    private final static String DATE_FLAG = "-d";
+    private final static String FILE_FLAG = "f";
+    private final static String DATE_FLAG = "d";
     private final static int SKIP_LINES = 1;
 
     public static void main(String[] args) {
@@ -30,14 +32,18 @@ public class Main {
         InputStream inputStream = null;
         PrintStream printStream = System.out;
         try {
-            List<Option> options = getOptions(args);
-            inputStream = IO.getInputStream(getOpt(options, FILE_FLAG));
+            Map<String, List<String>> arguments = getOptions(args);
+
+            List<String> fileOptions = arguments.get(FILE_FLAG);
+
+            inputStream = IO.getInputStream(fileOptions.get(0));
 
             List<Cookie> cookies = csvParser.read(inputStream, SKIP_LINES);
             SearchRange<Cookie> SearchRange = new BinarySearchRange<>();
 
             // O(Log n)
-            List<Cookie> searchedCookies = SearchRange.searchRange(cookies, Main::dateCompare, new Cookie("", getOpt(options, DATE_FLAG)));
+            List<String> dateOption = arguments.get(DATE_FLAG);
+            List<Cookie> searchedCookies = SearchRange.searchRange(cookies, Main::dateCompare, new Cookie("", dateOption.get(0)));
             if (searchedCookies.isEmpty()) {
                 IO.write(printStream, "there isn't cookies for the specified day");
                 System.exit(0);
@@ -46,7 +52,7 @@ public class Main {
             ListMapper<Cookie> listMapper = new MostFrequentListMapper();
             List<Cookie> finalCookies = listMapper.apply(searchedCookies);
             finalCookies.forEach(cookie -> IO.write(printStream, cookie.getName()));
-        } catch (NotEnoughArgumentException | URISyntaxException | IOException e) {
+        } catch (NotEnoughArgumentException | IOException | URISyntaxException e) {
             IO.write(printStream, e.getMessage());
         } catch (DateTimeParseException e) {
             IO.write(printStream, "Invalid date format");
@@ -71,38 +77,28 @@ public class Main {
             return 1;
     }
 
-    private static class Option {
-        String flag, opt;
+    private static Map<String, List<String>> getOptions(String[] args) {
+        final Map<String, List<String>> params = new HashMap<>();
 
-        Option(String flag, String opt) {
-            this.flag = flag;
-            this.opt = opt;
-        }
-    }
-
-
-    private static String getOpt(List<Option> options,String flag) {
-        return options.stream().filter(option -> option.flag.equals(flag)).findFirst().get().opt;
-    }
-
-    private static List<Option> getOptions(String[] args) {
-        if (args.length < 4)
-            throw new NotEnoughArgumentException(" not valid arguments -f (filename) -d (day)");
-        List<Option> optsList = new ArrayList<>();
-
+        List<String> options = null;
         for (int i = 0; i < args.length; i++) {
-            if (args[i].charAt(0) == '-') {
-                if (args[i].length() < 2)
-                    throw new IllegalArgumentException("Not a valid argument: " + args[i]);
-                else {
-                    if (args.length - 1 == i)
-                        throw new IllegalArgumentException("Expected arg after: " + args[i]);
-                    // -opt
-                    optsList.add(new Option(args[i], args[i + 1]));
-                    i++;
+            final String a = args[i];
+
+            if (a.charAt(0) == '-') {
+                if (a.length() < 2) {
+                    throw new IllegalArgumentException("Not a valid argument: " + a);
                 }
+
+                options = new ArrayList<>();
+                params.put(a.substring(1), options);
+            }
+            else if (options != null) {
+                options.add(a);
+            }
+            else {
+                throw new IllegalArgumentException("Illegal parameter usage: " + a);
             }
         }
-        return optsList;
+        return params;
     }
 }
