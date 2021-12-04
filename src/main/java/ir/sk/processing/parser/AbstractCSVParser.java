@@ -1,9 +1,6 @@
 package ir.sk.processing.parser;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -15,9 +12,9 @@ public abstract class AbstractCSVParser<T> implements CSVParser<T> {
     protected final static String SEPARATOR = ",";
 
     @Override
-    public List<T> read(InputStream inputStream, int skipLines, UnaryOperator<T> ...unaryOperators) throws IOException {
+    public List<T> read(Reader reader, int skipLines, UnaryOperator<T> ...unaryOperators) throws IOException {
         List<T> list = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
+        try (BufferedReader br = new BufferedReader(reader)) {
             String str;
             int counter = 0;
             while ((str = br.readLine()) != null) {

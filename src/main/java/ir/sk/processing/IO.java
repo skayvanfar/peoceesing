@@ -14,9 +14,9 @@ public class IO {
 
     private PrintStream printStream = System.out;
 
-    public static InputStream getInputStream(String name) throws URISyntaxException, FileNotFoundException {
+    public static Reader getReader(String name) throws URISyntaxException, FileNotFoundException {
         File file = getFile(name);
-        return inputStream(file);
+        return getReader(file);
     }
 
     public static File getFile(String fileName) throws URISyntaxException {
@@ -25,8 +25,8 @@ public class IO {
         return path.toFile();
     }
 
-    public static InputStream inputStream(File file) throws FileNotFoundException {
-        return new FileInputStream(file);
+    public static Reader getReader(File file) throws FileNotFoundException {
+        return new FileReader(file);
     }
 
     public static void write(PrintStream writer, String str) {

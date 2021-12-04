@@ -13,6 +13,7 @@ import ir.sk.processing.search.SearchRange;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.Reader;
 import java.net.URISyntaxException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -29,16 +30,16 @@ public class Main {
 
     public static void main(String[] args) {
         CSVParser<Cookie> csvParser = CSVParserFactory.getParser(RecordType.COOKIE);
-        InputStream inputStream = null;
+        Reader reader = null;
         PrintStream printStream = System.out;
         try {
             Map<String, List<String>> arguments = getOptions(args);
 
             List<String> fileOptions = arguments.get(FILE_FLAG);
 
-            inputStream = IO.getInputStream(fileOptions.get(0));
+            reader = IO.getReader(fileOptions.get(0));
 
-            List<Cookie> cookies = csvParser.read(inputStream, SKIP_LINES);
+            List<Cookie> cookies = csvParser.read(reader, SKIP_LINES);
             SearchRange<Cookie> SearchRange = new BinarySearchRange<>();
 
             // O(Log n)
@@ -58,8 +59,8 @@ public class Main {
             IO.write(printStream, "Invalid date format");
         } finally {
             try {
-                if (inputStream != null)
-                    inputStream.close();
+                if (reader != null)
+                    reader.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }

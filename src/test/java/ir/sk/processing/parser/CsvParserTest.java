@@ -8,7 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.FileNotFoundException;
-import java.io.InputStream;
+import java.io.Reader;
 import java.net.URISyntaxException;
 import java.util.List;
 
@@ -17,12 +17,12 @@ public class CsvParserTest {
     private final static String FILENAME = "sample.csv";
 
     private CSVParser<Cookie> csvParser;
-    private InputStream inputStream;
+    private Reader reader;
 
     @Before
     public void setUp() throws FileNotFoundException, URISyntaxException {
         csvParser = new CookieCsvParser();
-        inputStream = IO.getInputStream(FILENAME);
+        reader = IO.getReader(FILENAME);
     }
 
     @After
@@ -32,7 +32,7 @@ public class CsvParserTest {
     @Test
     public void read() throws Exception {
         int expectedSize = 13;
-        List<Cookie> cookies = csvParser.read(inputStream, 1);
+        List<Cookie> cookies = csvParser.read(reader, 1);
         Assert.assertEquals(expectedSize, cookies.size());
     }
 }
