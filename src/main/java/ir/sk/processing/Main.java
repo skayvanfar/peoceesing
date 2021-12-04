@@ -10,10 +10,7 @@ import ir.sk.processing.parser.RecordType;
 import ir.sk.processing.search.BinarySearchRange;
 import ir.sk.processing.search.SearchRange;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
-import java.io.Reader;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -21,6 +18,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Main {
 
@@ -28,23 +29,22 @@ public class Main {
     private final static String DATE_FLAG = "d";
     private final static int SKIP_LINES = 1;
 
+    private final static int nThread = Runtime.getRuntime().availableProcessors();
+
+
     public static void main(String[] args) {
-        CSVParser<Cookie> csvParser = CSVParserFactory.getParser(RecordType.COOKIE);
-        Reader reader = null;
         PrintStream printStream = System.out;
         try {
             Map<String, List<String>> arguments = getOptions(args);
 
-            List<String> fileOptions = arguments.get(FILE_FLAG);
+            List<String> fileNames = arguments.get(FILE_FLAG);
+            List<Cookie> allCookies = readAllCookieFiles(fileNames);
 
-            reader = IO.getReader(fileOptions.get(0));
-
-            List<Cookie> cookies = csvParser.read(reader, SKIP_LINES);
             SearchRange<Cookie> SearchRange = new BinarySearchRange<>();
 
             // O(Log n)
             List<String> dateOption = arguments.get(DATE_FLAG);
-            List<Cookie> searchedCookies = SearchRange.searchRange(cookies, Main::dateCompare, new Cookie("", dateOption.get(0)));
+            List<Cookie> searchedCookies = SearchRange.searchRange(allCookies, Main::dateCompare, new Cookie("", dateOption.get(0)));
             if (searchedCookies.isEmpty()) {
                 IO.write(printStream, "there isn't cookies for the specified day");
                 System.exit(0);
@@ -53,18 +53,45 @@ public class Main {
             ListMapper<Cookie> listMapper = new MostFrequentListMapper();
             List<Cookie> finalCookies = listMapper.apply(searchedCookies);
             finalCookies.forEach(cookie -> IO.write(printStream, cookie.getName()));
-        } catch (NotEnoughArgumentException | IOException | URISyntaxException e) {
+        } catch (NotEnoughArgumentException | InterruptedException e) {
             IO.write(printStream, e.getMessage());
+        } catch (ExecutionException e) {
+            e.getCause().printStackTrace();
         } catch (DateTimeParseException e) {
             IO.write(printStream, "Invalid date format");
         } finally {
-            try {
+            /*try {
                 if (reader != null)
                     reader.close();
             } catch (IOException e) {
                 e.printStackTrace();
-            }
+            }*/
         }
+    }
+
+    /**
+     * Read Cookies concurrency
+     */
+    private static List<Cookie> readAllCookieFiles(List<String> fileNames) throws ExecutionException, InterruptedException {
+        CSVParser<Cookie> csvParser = CSVParserFactory.getParser(RecordType.COOKIE);
+
+        List<Future<List<Cookie>>> futureList = new ArrayList<>();
+
+        ExecutorService executorService = Executors.newFixedThreadPool(nThread);
+
+        for (String fileName : fileNames) {
+            futureList.add(executorService.submit(() -> {
+                Reader reader = IO.getReader(fileName);
+                List<Cookie> cookies = csvParser.read(reader, SKIP_LINES);
+                return cookies;
+            }));
+        }
+        List<Cookie> allCookies = new ArrayList<>();
+        for (Future<List<Cookie>> future : futureList) {
+            allCookies.addAll(future.get());
+        }
+        executorService.shutdown();
+        return allCookies;
     }
 
     public static int dateCompare(Cookie cookie, Cookie targetCookie) {
@@ -92,11 +119,9 @@ public class Main {
 
                 options = new ArrayList<>();
                 params.put(a.substring(1), options);
-            }
-            else if (options != null) {
+            } else if (options != null) {
                 options.add(a);
-            }
-            else {
+            } else {
                 throw new IllegalArgumentException("Illegal parameter usage: " + a);
             }
         }

@@ -12,10 +12,6 @@ public class CookieCsvParser extends AbstractCSVParser<Cookie> {
 
     private static final String SEPARATOR = ",";
 
-    private List<String> parse(String line, String separator) {
-       return (Arrays.stream(line.split(separator)).map(field -> field.substring(0, 10)).collect(Collectors.toList()));
-    }
-
     // Strategy design pattern
     @Override
     protected Optional<Cookie> buildObject(String str, UnaryOperator<Cookie> ...unaryOperators) {
